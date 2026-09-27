@@ -1,10 +1,22 @@
-import { MessageRole, PromptMessage, VariableMap, PromptTemplateOptions } from './types.js';
+import {
+  MessageRole,
+  PromptMessage,
+  VariableMap,
+  PromptTemplateOptions,
+  MinifyOptions,
+  TokenSavingsResult,
+  FileContextOptions,
+  TruncateOptions,
+} from './types.js';
 import { interpolateTemplate } from './sanitizer.js';
 import { xmlTag } from './xml.js';
+import { minifyPrompt, calculateTokenSavings, countEstimatedTokens } from './minifier.js';
+import { formatFileContext } from './context.js';
 
 export class PromptBuilder {
   private messages: PromptMessage[] = [];
   private options: PromptTemplateOptions;
+  private rawTextBeforeMinification?: string;
 
   constructor(options: PromptTemplateOptions = {}) {
     this.options = options;
@@ -65,11 +77,88 @@ export class PromptBuilder {
   }
 
   /**
+   * Appends a structured file context tag to the prompt sequence
+   */
+  addFileContext(filePath: string, content: string, options?: FileContextOptions): this {
+    const fileXml = formatFileContext(filePath, content, options);
+    return this.user(fileXml);
+  }
+
+  /**
+   * Minifies all messages in the prompt sequence to save AI token bandwidth
+   */
+  minify(options?: MinifyOptions): this {
+    if (!this.rawTextBeforeMinification) {
+      this.rawTextBeforeMinification = this.buildText();
+    }
+    this.messages = this.messages.map((msg) => ({
+      ...msg,
+      content: minifyPrompt(msg.content, options),
+    }));
+    return this;
+  }
+
+  /**
+   * Truncates message history to respect a maximum token budget
+   */
+  truncateToTokenLimit(maxTokens: number, options: TruncateOptions = {}): this {
+    const { preserveSystemMessages = true, strategy = 'start' } = options;
+
+    let currentTokens = this.estimateTokens();
+    if (currentTokens <= maxTokens) return this;
+
+    const preserved: PromptMessage[] = [];
+    let reducible: PromptMessage[] = [];
+
+    for (const msg of this.messages) {
+      if (preserveSystemMessages && (msg.role === 'system' || msg.role === 'developer')) {
+        preserved.push(msg);
+      } else {
+        reducible.push(msg);
+      }
+    }
+
+    while (reducible.length > 0) {
+      const candidateList = [...preserved, ...reducible];
+      const totalChars = candidateList.reduce((acc, m) => acc + m.content.length, 0);
+      if (Math.ceil(totalChars / 4) <= maxTokens) break;
+
+      if (strategy === 'start') {
+        reducible.shift();
+      } else {
+        reducible.pop();
+      }
+    }
+
+    this.messages = strategy === 'start'
+      ? [...preserved, ...reducible]
+      : [...preserved, ...reducible];
+
+    return this;
+  }
+
+  /**
+   * Alias for truncateToTokenLimit
+   */
+  truncateToBudget(maxTokens: number, options?: TruncateOptions): this {
+    return this.truncateToTokenLimit(maxTokens, options);
+  }
+
+  /**
    * Estimates rough token count based on character heuristic (~4 chars per token)
    */
   estimateTokens(): number {
     const totalChars = this.messages.reduce((acc, msg) => acc + msg.content.length, 0);
-    return Math.ceil(totalChars / 4);
+    return countEstimatedTokens(this.messages.map((m) => m.content).join(''));
+  }
+
+  /**
+   * Provides detailed token statistics for all messages in the builder
+   */
+  getTokenStats(): TokenSavingsResult {
+    const currentText = this.buildText();
+    const rawText = this.rawTextBeforeMinification || currentText;
+    return calculateTokenSavings(rawText, currentText);
   }
 
   /**
@@ -83,7 +172,7 @@ export class PromptBuilder {
    * Builds single combined prompt string (suitable for completion models)
    */
   buildText(separator: string = '\n\n'): string {
-    return this.messages.map(msg => `[${msg.role.toUpperCase()}]:\n${msg.content}`).join(separator);
+    return this.messages.map((msg) => `[${msg.role.toUpperCase()}]:\n${msg.content}`).join(separator);
   }
 
   /**
@@ -91,6 +180,7 @@ export class PromptBuilder {
    */
   clear(): this {
     this.messages = [];
+    this.rawTextBeforeMinification = undefined;
     return this;
   }
 }

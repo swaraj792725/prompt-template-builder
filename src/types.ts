@@ -23,3 +23,37 @@ export interface XmlElementOptions {
   attributes?: Record<string, string>;
   indent?: number;
 }
+
+export interface MinifyOptions {
+  /** Strip developer comments (e.g. // comment or HTML comments) */
+  stripComments?: boolean;
+  /** Collapse 3+ consecutive newlines into 2 */
+  collapseBlankLines?: boolean;
+  /** Trim trailing spaces on lines */
+  trimTrailingWhitespace?: boolean;
+  /** Preserve markdown code fences without altering whitespace inside them */
+  preserveCodeBlocks?: boolean;
+}
+
+export interface TokenSavingsResult {
+  originalLength: number;
+  minifiedLength: number;
+  originalTokens: number;
+  minifiedTokens: number;
+  tokensSaved: number;
+  percentReduced: number;
+}
+
+export interface FileContextOptions {
+  language?: string;
+  startLine?: number;
+  endLine?: number;
+  attributes?: Record<string, string>;
+}
+
+export interface TruncateOptions {
+  /** Keep system and developer messages untouched. Default: true */
+  preserveSystemMessages?: boolean;
+  /** Position to truncate from ('start' removes oldest history, 'end' cuts off tail). Default: 'start' */
+  strategy?: 'start' | 'end';
+}
