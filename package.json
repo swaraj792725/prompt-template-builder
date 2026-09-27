@@ -1,0 +1,53 @@
+{
+  "name": "prompt-template-builder",
+  "version": "1.0.0",
+  "description": "Ultra-fast, zero-dependency, type-safe prompt template engine for AI agents and LLMs",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swaraj792725/prompt-template-builder.git"
+  },
+  "keywords": [
+    "prompt-engineering",
+    "llm",
+    "ai-agents",
+    "anthropic",
+    "openai",
+    "claude",
+    "template-engine",
+    "typescript",
+    "zero-dependency",
+    "prompt-templates"
+  ],
+  "author": "Swaraj Jakanoor <169044732+swaraj792725@users.noreply.github.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/swaraj792725/prompt-template-builder/issues"
+  },
+  "homepage": "https://github.com/swaraj792725/prompt-template-builder#readme",
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "tsup": "^8.0.2",
+    "vitest": "^1.6.0"
+  }
+}
