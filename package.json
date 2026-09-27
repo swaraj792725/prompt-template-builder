@@ -1,7 +1,10 @@
 {
-  "name": "prompt-template-builder",
+  "name": "@swaraj792725/prompt-template-builder",
   "version": "1.0.0",
   "description": "Ultra-fast, zero-dependency, type-safe prompt template engine for AI agents and LLMs",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
